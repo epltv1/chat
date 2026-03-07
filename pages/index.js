@@ -3,7 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 import EmojiPicker from 'emoji-picker-react';
 import { Send, Smile } from 'lucide-react';
 
-// Connect to Supabase (We will add the keys in Stormkit later)
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -15,7 +14,6 @@ export default function ChatApp() {
   const [showEmoji, setShowEmoji] = useState(false);
   const scrollRef = useRef(null);
 
-  // 1. Fetch & Listen for messages
   useEffect(() => {
     const fetchMessages = async () => {
       const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
@@ -31,7 +29,6 @@ export default function ChatApp() {
     return () => supabase.removeChannel(channel);
   }, []);
 
-  // 2. Auto-scroll to bottom
   useEffect(() => { scrollRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
   const sendMessage = async (e) => {
@@ -42,44 +39,41 @@ export default function ChatApp() {
   };
 
   return (
-    <div className="flex flex-col h-screen max-w-2xl mx-auto border-x border-gray-700 shadow-2xl bg-chatBackground">
+    <div className="flex flex-col h-screen bg-[#0f1012] text-[#d1d1d1] font-sans text-sm">
       {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="flex-1 overflow-y-auto p-3 space-y-2">
         {messages.map((m) => (
-          <div key={m.id} className="group hover:bg-[#2e3035] p-2 rounded transition">
-            <p className="text-xs text-blue-400 font-bold">Guest User</p>
-            <p className="text-chatText">{m.content}</p>
+          <div key={m.id} className="flex gap-2">
+            <span className="font-bold text-[#64db64]">Guest:</span>
+            <span>{m.content}</span>
           </div>
         ))}
         <div ref={scrollRef} />
       </div>
 
-      {/* Input Area */}
-      <form onSubmit={sendMessage} className="p-4 bg-chatBackground relative">
-        <div className="flex items-center bg-chatInput rounded-lg p-2 gap-2">
-          <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="text-gray-400 hover:text-white">
-            <Smile size={24} />
-          </button>
+      {/* Input Area (PPV Style) */}
+      <div className="p-3 bg-[#0f1012]">
+        <form onSubmit={sendMessage} className="flex items-center bg-[#1e1f22] rounded-md px-2 py-1">
           <input 
-            className="bg-transparent flex-1 outline-none text-chatText"
-            placeholder="Message the group..."
+            className="bg-transparent flex-1 outline-none text-white px-2 py-1"
+            placeholder="Send a message"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button type="submit" className="text-gray-400 hover:text-white">
-            <Send size={24} />
+          <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="text-[#a0a0a0] hover:text-white p-1">
+            <Smile size={18} />
           </button>
-        </div>
+          <button type="submit" className="text-[#a0a0a0] hover:text-white p-1">
+            <Send size={18} />
+          </button>
+        </form>
         
         {showEmoji && (
-          <div className="absolute bottom-20 left-4 z-50">
-            <EmojiPicker 
-              theme="dark" 
-              onEmojiClick={(emoji) => { setInput(prev => prev + emoji.emoji); setShowEmoji(false); }} 
-            />
+          <div className="absolute bottom-16 right-4 z-50">
+            <EmojiPicker theme="dark" onEmojiClick={(e) => { setInput(prev => prev + e.emoji); setShowEmoji(false); }} />
           </div>
         )}
-      </form>
+      </div>
     </div>
   );
 }
