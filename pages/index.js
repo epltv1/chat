@@ -39,40 +39,48 @@ export default function ChatApp() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0f1012] text-[#d1d1d1] font-sans text-sm">
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-3 space-y-2">
+    <div className="flex flex-col h-screen bg-[#0f1012] text-[#d1d1d1]">
+      {/* 1. Scrollable message area (Takes all available space) */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
         {messages.map((m) => (
-          <div key={m.id} className="flex gap-2">
-            <span className="font-bold text-[#64db64]">Guest:</span>
+          <div key={m.id} className="text-[14px]">
+            <span className="font-bold text-[#64db64] mr-2">Guest:</span>
             <span>{m.content}</span>
           </div>
         ))}
         <div ref={scrollRef} />
       </div>
 
-      {/* Input Area (PPV Style) */}
-      <div className="p-3 bg-[#0f1012]">
-        <form onSubmit={sendMessage} className="flex items-center bg-[#1e1f22] rounded-md px-2 py-1">
+      {/* 2. Fixed Input Container at the bottom */}
+      <div className="p-3 bg-[#0f1012] border-t border-[#2d2d2d]">
+        
+        {/* Emoji Picker container: Sits directly above input */}
+        {showEmoji && (
+          <div className="mb-2">
+            <EmojiPicker 
+              theme="dark" 
+              width="100%" 
+              height="300px"
+              onEmojiClick={(e) => { setInput(prev => prev + e.emoji); setShowEmoji(false); }} 
+            />
+          </div>
+        )}
+
+        <form onSubmit={sendMessage} className="flex items-center bg-[#1e1f22] rounded-md px-3 py-2 gap-2">
           <input 
-            className="bg-transparent flex-1 outline-none text-white px-2 py-1"
+            className="bg-transparent flex-1 outline-none text-white text-sm"
             placeholder="Send a message"
             value={input}
             onChange={(e) => setInput(e.target.value)}
           />
-          <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="text-[#a0a0a0] hover:text-white p-1">
-            <Smile size={18} />
+          
+          <button type="button" onClick={() => setShowEmoji(!showEmoji)} className="text-[#a0a0a0] hover:text-white transition">
+            <Smile size={20} />
           </button>
-          <button type="submit" className="text-[#a0a0a0] hover:text-white p-1">
-            <Send size={18} />
+          <button type="submit" className="text-[#a0a0a0] hover:text-white transition">
+            <Send size={20} />
           </button>
         </form>
-        
-        {showEmoji && (
-          <div className="absolute bottom-16 right-4 z-50">
-            <EmojiPicker theme="dark" onEmojiClick={(e) => { setInput(prev => prev + e.emoji); setShowEmoji(false); }} />
-          </div>
-        )}
       </div>
     </div>
   );
