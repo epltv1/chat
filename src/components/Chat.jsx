@@ -61,7 +61,6 @@ export default function Chat({ username, onLogout }) {
         </div>
       </div>
 
-      {/* Announcement Banner (Static) */}
       {announcement.is_active && (
         <div className="bg-[#2b2d31] text-white text-[11px] py-1.5 px-3 border-b border-[#1c1d1f] flex items-center">
           <Megaphone size={12} className="mr-2 shrink-0 text-yellow-500" />
@@ -83,11 +82,17 @@ export default function Chat({ username, onLogout }) {
       {isLocked && username.toLowerCase() !== 'optimus' ? (
         <div className="p-4 text-center text-[#949ba4] text-xs border-t border-[#1c1d1f]">Chat is locked.</div>
       ) : (
-        <form onSubmit={sendMessage} className="p-3 bg-[#0f1012] border-t border-[#1c1d1f]">
+        <form onSubmit={sendMessage} className="p-3 bg-[#0f1012] border-t border-[#1c1d1f] relative">
           <div className="flex items-center gap-3">
             <textarea value={input} onChange={(e) => setInput(e.target.value)} className="flex-1 bg-[#161719] p-2 text-[13px] rounded border border-[#262729] text-white outline-none" rows="2" placeholder="Send a message" />
+            <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white"><Smile size={22} /></button>
             <button type="submit" className="text-[#5865f2]"><Send size={22} /></button>
           </div>
+          {showEmojis && (
+            <div className="absolute bottom-[80px] right-2 z-50">
+              <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
+            </div>
+          )}
         </form>
       )}
     </div>
