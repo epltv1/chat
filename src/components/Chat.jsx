@@ -22,7 +22,10 @@ export default function Chat({ username, onLogout }) {
 
   const fetchData = async () => {
     const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    
+    // Greeting Message from Bot
     const systemBot = { id: 'system', username: 'Futbolx', content: 'Welcome to Futbolx chat, respect each other and use common sense and lets enjoy the games.', isSystem: true };
+    
     if (msgs) setMessages([systemBot, ...msgs]);
     
     const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
@@ -45,8 +48,9 @@ export default function Chat({ username, onLogout }) {
     if (!input.trim()) return;
 
     // RIGOROUS LINK PROTECTION
-    const linkRegex = /(http|https|www|\.[a-z]{2,})\s/gi;
+    const linkRegex = /([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|(http|https|www)/gi;
     const isOwner = username.toLowerCase() === 'optimus';
+    
     if (!isOwner && linkRegex.test(input.toLowerCase())) {
       alert("Links are restricted!");
       setInput('');
