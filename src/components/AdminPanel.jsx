@@ -5,23 +5,31 @@ export default function AdminPanel({ isOpen, onClose }) {
   const [members, setMembers] = useState([]);
   const [unbanUsername, setUnbanUsername] = useState('');
 
+  // Fetch members when the panel opens
   useEffect(() => {
     if (isOpen) fetchMembers();
   }, [isOpen]);
 
   const fetchMembers = async () => {
-    // Ensure you have a 'profiles' table with 'username' and 'status'
-    const { data } = await supabase.from('profiles').select('username, status');
-    setMembers(data || []);
+    // Fetching directly from profiles
+    const { data, error } = await supabase.from('profiles').select('username, status');
+    if (error) console.error("Error fetching members:", error);
+    else setMembers(data || []);
   };
 
   const updateLock = async (value) => {
-    await supabase.from('chat_settings').update({ is_locked: value }).eq('id', 1);
+    const { error } = await supabase.from('chat_settings').update({ is_locked: value }).eq('id', 1);
+    if (!error) alert(`Chat ${value ? 'Locked' : 'Unlocked'}`);
   };
 
   const updateStatus = async (username, status) => {
-    await supabase.from('profiles').update({ status }).eq('username', username);
-    fetchMembers(); // Refresh list
+    const { error } = await supabase.from('profiles').update({ status }).eq('username', username);
+    if (!error) {
+      alert(`${username} set to ${status}`);
+      fetchMembers(); // Refresh list
+    } else {
+      alert("Error: " + error.message);
+    }
   };
 
   if (!isOpen) return null;
