@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../main';
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Send, LogOut, Settings, Trash2 } from 'lucide-react';
+import { Smile, Send, LogOut, Settings, Trash2, Megaphone } from 'lucide-react';
 import AdminPanel from './AdminPanel';
 
 const getNameColor = (username) => {
@@ -19,22 +19,27 @@ export default function Chat({ username, onLogout }) {
   const [showEmojis, setShowEmojis] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [announcement, setAnnouncement] = useState({ content: '', is_active: false });
   const chatEndRef = useRef(null);
 
-  // Helper to fetch data
   const fetchData = async () => {
+    // Fetch Messages
     const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
     if (msgs) setMessages(msgs);
     
+    // Fetch Settings
     const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
     if (setting) setIsLocked(setting.is_locked);
+
+    // Fetch Announcement
+    const { data: ann } = await supabase.from('announcements').select('*').eq('id', 1).single();
+    if (ann) setAnnouncement(ann);
   };
 
   useEffect(() => {
-    // 1. Initial load
     fetchData();
 
-    // 2. Pro Polling Strategy: Refresh every 3 seconds to ensure all users see new messages
+    // Pro Polling: Refresh every 3 seconds for all users
     const interval = setInterval(() => {
       fetchData();
     }, 3000);
@@ -54,14 +59,12 @@ export default function Chat({ username, onLogout }) {
     if (!error) {
       setInput('');
       setShowEmojis(false);
-      // Force refresh immediately after sending
       fetchData();
     }
   };
 
   const deleteMessage = async (id) => {
     await supabase.from('messages').delete().eq('id', id);
-    // Force refresh immediately after deletion
     fetchData();
   };
 
@@ -83,6 +86,17 @@ export default function Chat({ username, onLogout }) {
           </button>
         </div>
       </div>
+
+      {/* Announcement Ticker */}
+      {announcement.is_active && (
+        <div className="bg-[#2b2d31] text-white text-[11px] py-1.5 px-3 border-b border-[#1c1d1f] overflow-hidden whitespace-nowrap flex items-center">
+          <Megaphone size={12} className="mr-2 shrink-0 text-yellow-500" />
+          <div className="animate-marquee inline-block">
+            {announcement.content}
+          </div>
+        </div>
+      )}
+      
 
       <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
