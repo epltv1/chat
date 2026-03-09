@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../main';
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Send, LogOut, Settings } from 'lucide-react';
+import { Smile, Send, LogOut, Settings, Trash2 } from 'lucide-react'; // Added Trash2
 import AdminPanel from './AdminPanel';
 
 const getNameColor = (username) => {
@@ -28,13 +28,13 @@ export default function Chat({ username, onLogout }) {
     };
     fetchMessages();
 
-    // Combined Subscription for Insert and Delete
     const channel = supabase.channel('realtime-chat')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => [...prev, payload.new]);
       })
-      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, () => {
-        setMessages([]); // Clears the screen for everyone
+      // Listen for specific message deletions
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
+        setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
       })
       .subscribe();
 
@@ -67,9 +67,14 @@ export default function Chat({ username, onLogout }) {
     }
   };
 
+  const deleteMessage = async (id) => {
+    await supabase.from('messages').delete().eq('id', id);
+  };
+
   return (
     <div className="relative flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#1c1d1f] overflow-hidden font-sans">
       <AdminPanel isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
+      
       <div className="p-2 px-3 bg-[#0f1012] border-b border-[#1c1d1f] flex justify-between items-center">
         <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">chat</h2>
         <div className="flex items-center gap-3">
@@ -84,9 +89,19 @@ export default function Chat({ username, onLogout }) {
           </button>
         </div>
       </div>
+
       <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
-          <div key={msg.id} className="text-[13px] leading-[1.4]">
+          <div key={msg.id} className="group flex items-center gap-2 text-[13px] leading-[1.4]">
+            {/* Delete button: visible only for Optimus, appears on hover */}
+            {username.toLowerCase() === 'optimus' && (
+              <button 
+                onClick={() => deleteMessage(msg.id)} 
+                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
+              >
+                <Trash2 size={12} />
+              </button>
+            )}
             <span className="font-bold mr-1.5 uppercase tracking-wide" style={{ color: getNameColor(msg.username) }}>
               {msg.username}:
             </span>
@@ -95,6 +110,7 @@ export default function Chat({ username, onLogout }) {
         ))}
         <div ref={chatEndRef} />
       </div>
+
       <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
         <div className="flex items-stretch gap-3">
           <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
