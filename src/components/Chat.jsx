@@ -25,15 +25,17 @@ export default function Chat({ username, onLogout }) {
     // 1. Initial Load
     const fetchData = async () => {
       const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      setMessages(data || []);
+      if (data) setMessages(data);
+      
       const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
       if (setting) setIsLocked(setting.is_locked);
     };
     fetchData();
 
-    // 2. Robust Realtime Subscription
-    const channel = supabase.channel('realtime-chat')
+    // 2. Realtime Subscription
+    const channel = supabase.channel('chat_messages')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
+        console.log("Change received!", payload);
         if (payload.eventType === 'INSERT') {
           setMessages((prev) => [...prev, payload.new]);
         } else if (payload.eventType === 'DELETE') {
@@ -43,9 +45,13 @@ export default function Chat({ username, onLogout }) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_settings' }, (payload) => {
         setIsLocked(payload.new.is_locked);
       })
-      .subscribe();
+      .subscribe((status) => {
+        console.log("Subscription status:", status);
+      });
 
-    return () => supabase.removeChannel(channel);
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   useEffect(() => {
