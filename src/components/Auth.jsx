@@ -3,42 +3,49 @@ import { supabase } from '../main';
 
 export default function Auth({ onAuthSuccess }) {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
 
-  const handleAction = async (isRegister) => {
-    // We treat the username as the email handle
-    const email = `${username.toLowerCase()}@chat.com`;
+  const handleEnter = async () => {
+    if (!username.trim()) return alert("Enter a username!");
 
-    if (isRegister) {
-      const { data, error } = await supabase.auth.signUp({ email, password });
-      if (error) return alert("Signup failed: " + error.message);
-      
-      // Save profile so we can link the username to the ID
-      await supabase.from('profiles').insert([{ id: data.user.id, username }]);
-      onAuthSuccess(data.user);
+    // 1. Get user's current IP
+    const res = await fetch('https://api.ipify.org?format=json');
+    const { ip } = await res.json();
+
+    // 2. Check if username exists in DB
+    const { data: existingUser } = await supabase
+      .from('users')
+      .select('*')
+      .eq('username', username)
+      .single();
+
+    if (existingUser) {
+      // 3. If exists, check if IP matches
+      if (existingUser.ip_address !== ip) {
+        return alert("This username is taken by another device!");
+      }
+      // If IP matches, log them in
+      localStorage.setItem('chat_username', username);
+      onAuthSuccess(username);
     } else {
-      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-      if (error) return alert("Login failed: " + error.message);
-      onAuthSuccess(data.user);
+      // 4. If new, register them with their IP
+      const { error } = await supabase.from('users').insert([{ username, ip_address: ip }]);
+      if (error) return alert("Error registering: " + error.message);
+      
+      localStorage.setItem('chat_username', username);
+      onAuthSuccess(username);
     }
   };
 
   return (
     <div className="w-full max-w-sm p-6 bg-[#161719] rounded-lg border border-[#262729]">
       <input 
-        type="text" placeholder="Username" 
+        type="text" 
+        placeholder="Choose your username" 
+        value={username}
         onChange={(e) => setUsername(e.target.value)} 
-        className="w-full p-2 mb-2 bg-[#0f1012] text-white border border-[#2b2d31]" 
+        className="w-full p-2 mb-4 bg-[#0f1012] text-white border border-[#2b2d31] rounded" 
       />
-      <input 
-        type="password" placeholder="Password" 
-        onChange={(e) => setPassword(e.target.value)} 
-        className="w-full p-2 mb-4 bg-[#0f1012] text-white border border-[#2b2d31]" 
-      />
-      <div className="flex gap-2">
-        <button onClick={() => handleAction(true)} className="flex-1 bg-blue-600 text-white p-2">Register</button>
-        <button onClick={() => handleAction(false)} className="flex-1 bg-gray-600 text-white p-2">Login</button>
-      </div>
+      <button onClick={handleEnter} className="w-full bg-blue-600 text-white p-2 rounded">Enter Chat</button>
     </div>
   );
 }
