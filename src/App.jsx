@@ -1,11 +1,18 @@
-import Chat from './components/Chat'
+import { useState, useEffect } from 'react';
+import Chat from './components/Chat';
+import Auth from './components/Auth';
+import { supabase } from './main';
 
-function App() {
+export default function App() {
+  const [user, setUser] = useState(null);
+
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => setUser(data.session?.user ?? null));
+  }, []);
+
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-[#0f1012]">
-      <Chat />
+    <div className="min-h-screen bg-[#0f1012] flex items-center justify-center">
+      {user ? <Chat user={user} /> : <Auth onAuthSuccess={setUser} />}
     </div>
-  )
+  );
 }
-
-export default App
