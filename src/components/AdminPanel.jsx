@@ -1,0 +1,20 @@
+export default function AdminPanel({ isOpen, onClose }) {
+  if (!isOpen) return null;
+
+  return (
+    <div className="absolute top-0 left-0 h-full w-[250px] bg-[#161719] border-r border-[#262729] z-50 p-4">
+      <button onClick={onClose} className="text-white mb-4">✕ Close</button>
+      <h2 className="text-white font-bold mb-4">Admin Controls</h2>
+      
+      <div className="space-y-2">
+        <button className="w-full bg-red-600 p-2 text-white">Lock Chat</button>
+        <button className="w-full bg-yellow-600 p-2 text-white">Slow Mode: On</button>
+      </div>
+      
+      <div className="mt-6">
+        <h3 className="text-white text-sm font-bold">Members</h3>
+        {/* We will fetch the 'users' table here */}
+      </div>
+    </div>
+  );
+}
