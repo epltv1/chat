@@ -18,21 +18,29 @@ export default function Chat({ username, onLogout }) {
   const [input, setInput] = useState('');
   const [showEmojis, setShowEmojis] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [isLocked, setIsLocked] = useState(false);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    const fetchMessages = async () => {
-      const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      setMessages(data || []);
+    // 1. Fetch initial state
+    const fetchData = async () => {
+      const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+      setMessages(msgs || []);
+      const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
+      if (setting) setIsLocked(setting.is_locked);
     };
-    fetchMessages();
+    fetchData();
 
+    // 2. Realtime Subscriptions
     const channel = supabase.channel('realtime-chat')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => [...prev, payload.new]);
       })
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
+      })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_settings' }, (payload) => {
+        setIsLocked(payload.new.is_locked);
       })
       .subscribe();
 
@@ -46,10 +54,6 @@ export default function Chat({ username, onLogout }) {
   const sendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
-
-    // Check if chat is locked
-    const { data: settings } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
-    if (settings?.is_locked) return alert("Chat is currently locked by admin.");
 
     const { error } = await supabase.from('messages').insert([{ username, content: input }]);
     if (!error) {
@@ -101,33 +105,40 @@ export default function Chat({ username, onLogout }) {
         <div ref={chatEndRef} />
       </div>
 
-      <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
-        <div className="flex items-stretch gap-3">
-          <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
-            <textarea
-              value={input}
-              onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-              placeholder="Send a message"
-              className="w-full bg-transparent text-[#dbdee1] outline-none resize-none text-[13px] placeholder-[#4f545c]"
-              rows="3"
-            />
-          </div>
-          <div className="flex flex-col justify-between py-0.5">
-            <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white transition-colors">
-              <Smile size={22} />
-            </button>
-            <button type="submit" className="text-[#5865f2] hover:text-blue-400 transition-colors">
-              <Send size={22} />
-            </button>
-          </div>
+      {/* LOCK LOGIC: Hide input for non-admins when locked */}
+      {isLocked && username.toLowerCase() !== 'optimus' ? (
+        <div className="p-4 text-center text-[#949ba4] text-xs bg-[#0f1012] border-t border-[#1c1d1f]">
+          Chat is currently locked.
         </div>
-        {showEmojis && (
-          <div className="absolute bottom-[100px] right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
-            <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
+      ) : (
+        <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
+          <div className="flex items-stretch gap-3">
+            <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
+                placeholder="Send a message"
+                className="w-full bg-transparent text-[#dbdee1] outline-none resize-none text-[13px] placeholder-[#4f545c]"
+                rows="3"
+              />
+            </div>
+            <div className="flex flex-col justify-between py-0.5">
+              <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white transition-colors">
+                <Smile size={22} />
+              </button>
+              <button type="submit" className="text-[#5865f2] hover:text-blue-400 transition-colors">
+                <Send size={22} />
+              </button>
+            </div>
           </div>
-        )}
-      </form>
+          {showEmojis && (
+            <div className="absolute bottom-[100px] right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
+              <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
+            </div>
+          )}
+        </form>
+      )}
     </div>
   );
 }
