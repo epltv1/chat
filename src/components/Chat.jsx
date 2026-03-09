@@ -31,13 +31,12 @@ export default function Chat({ username, onLogout }) {
     };
     fetchData();
 
-    // 2. Realtime Subscription - CRITICAL: Ensure you are listening to ALL events
+    // 2. Robust Realtime Subscription
     const channel = supabase.channel('realtime-chat')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
         if (payload.eventType === 'INSERT') {
           setMessages((prev) => [...prev, payload.new]);
-        }
-        if (payload.eventType === 'DELETE') {
+        } else if (payload.eventType === 'DELETE') {
           setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
         }
       })
