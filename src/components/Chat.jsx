@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../main';
 import EmojiPicker from 'emoji-picker-react';
 import { Smile, Send, LogOut, Settings } from 'lucide-react';
-import AdminPanel from './AdminPanel'; // Import the new component
+import AdminPanel from './AdminPanel';
 
 const getNameColor = (username) => {
   const colors = ['#adff2f', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4', '#9370db'];
@@ -17,7 +17,8 @@ export default function Chat({ username, onLogout }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showEmojis, setShowEmojis] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false); // New state for Drawer
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
+  const [lastMessageTime, setLastMessageTime] = useState(0); // Track last send time
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -27,9 +28,13 @@ export default function Chat({ username, onLogout }) {
     };
     fetchMessages();
 
+    // Subscribe to new messages AND deletions (to clear chat)
     const channel = supabase.channel('realtime-chat')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => [...prev, payload.new]);
+      })
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, () => {
+        setMessages([]); // Clear local state on delete
       })
       .subscribe();
 
@@ -43,33 +48,48 @@ export default function Chat({ username, onLogout }) {
   const sendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
-    
-    await supabase.from('messages').insert([{ 
+
+    // 1. Fetch current settings
+    const { data: settings } = await supabase.from('chat_settings').select('*').eq('id', 1).single();
+
+    // 2. Check Lock
+    if (settings?.is_locked) {
+      return alert("Chat is currently locked by admin.");
+    }
+
+    // 3. Check Slow Mode
+    const slowModeSeconds = settings?.slow_mode_seconds || 0;
+    const now = Date.now();
+    if (slowModeSeconds > 0 && (now - lastMessageTime) < (slowModeSeconds * 1000)) {
+      return alert(`Slow mode is on. Please wait ${slowModeSeconds} seconds between messages.`);
+    }
+
+    // 4. Send message
+    const { error } = await supabase.from('messages').insert([{ 
       username: username, 
       content: input 
     }]);
-    
-    setInput('');
-    setShowEmojis(false);
+
+    if (!error) {
+      setLastMessageTime(now);
+      setInput('');
+      setShowEmojis(false);
+    }
   };
 
   return (
     <div className="relative flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#1c1d1f] overflow-hidden font-sans">
       
-      {/* Admin Drawer Overlay */}
       <AdminPanel isOpen={isAdminOpen} onClose={() => setIsAdminOpen(false)} />
 
-      {/* Header with Logout & Admin Settings */}
       <div className="p-2 px-3 bg-[#0f1012] border-b border-[#1c1d1f] flex justify-between items-center">
         <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">chat</h2>
         <div className="flex items-center gap-3">
-          {/* Admin Settings Icon - Only shows for Optimus */}
           {username.toLowerCase() === 'optimus' && (
             <button onClick={() => setIsAdminOpen(true)} className="text-[#949ba4] hover:text-white transition-colors">
               <Settings size={14} />
             </button>
           )}
-          
           <span className="text-[11px] text-[#949ba4]">Hi, {username}</span>
           <button onClick={onLogout} className="text-[#949ba4] hover:text-red-500">
             <LogOut size={14} />
@@ -77,7 +97,6 @@ export default function Chat({ username, onLogout }) {
         </div>
       </div>
 
-      {/* Messages area */}
       <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
           <div key={msg.id} className="text-[13px] leading-[1.4]">
@@ -90,7 +109,6 @@ export default function Chat({ username, onLogout }) {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Area */}
       <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
         <div className="flex items-stretch gap-3">
           <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
@@ -108,7 +126,6 @@ export default function Chat({ username, onLogout }) {
               rows="3"
             />
           </div>
-
           <div className="flex flex-col justify-between py-0.5">
             <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white transition-colors">
               <Smile size={22} />
