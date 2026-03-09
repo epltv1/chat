@@ -8,7 +8,6 @@ const supabase = createClient(
   'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2cG51bGJ3cmpqcnlycWJ6ZnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MzU4MTEsImV4cCI6MjA4ODQxMTgxMX0.BDrz2DTfybunOlU0nuSNvURu8-ePgEK_pfrXIrxa7Ss'
 );
 
-// Function to generate random colors for usernames like the screenshot
 const getNameColor = (username) => {
   const colors = ['#adff2f', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4', '#9370db'];
   let hash = 0;
@@ -47,34 +46,28 @@ export default function Chat() {
   const sendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
-
-    await supabase.from('messages').insert([
-      { username: 'USER_' + Math.floor(Math.random() * 900), content: input }
-    ]);
+    await supabase.from('messages').insert([{ username: 'FAN_' + Math.floor(Math.random() * 999), content: input }]);
     setInput('');
     setShowEmojis(false);
   };
 
   return (
-    <div className="flex flex-col h-[650px] w-full max-w-md bg-[#0f1012] border border-[#2b2d31] overflow-hidden shadow-2xl font-sans">
+    <div className="flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#2b2d31] overflow-hidden font-sans">
       
       {/* Header */}
-      <div className="p-3 bg-[#0f1012] border-b border-[#2b2d31] flex justify-between items-center">
-        <h2 className="text-sm font-bold text-white uppercase tracking-tighter">chat</h2>
-        <div className="flex items-center gap-1">
+      <div className="p-2 px-3 bg-[#0f1012] border-b border-[#1c1d1f] flex justify-between items-center">
+        <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">chat</h2>
+        <div className="flex items-center gap-1.5">
           <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-          <span className="text-[10px] text-[#949ba4] font-medium">connected</span>
+          <span className="text-[11px] text-[#949ba4]">connected</span>
         </div>
       </div>
 
-      {/* Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-1 scrollbar-hide bg-[#0b0c0d]">
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
-          <div key={msg.id} className="text-sm leading-tight py-0.5">
-            <span 
-              className="font-bold mr-2 uppercase text-[12px]" 
-              style={{ color: getNameColor(msg.username) }}
-            >
+          <div key={msg.id} className="text-[13px] leading-[1.4]">
+            <span className="font-bold mr-1.5 uppercase tracking-wide" style={{ color: getNameColor(msg.username) }}>
               {msg.username}:
             </span>
             <span className="text-[#dbdee1]">{msg.content}</span>
@@ -83,12 +76,12 @@ export default function Chat() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Area (PPV Style) */}
-      <form onSubmit={sendMessage} className="p-3 bg-[#0f1012] border-t border-[#2b2d31] relative">
-        <div className="flex gap-2 items-end">
+      {/* Input Area - Tightened PPV Style */}
+      <form onSubmit={sendMessage} className="p-2 pb-3 bg-[#0f1012] border-t border-[#1c1d1f] relative">
+        <div className="flex items-end gap-2">
           
-          {/* Main Textarea */}
-          <div className="flex-1 bg-[#1e1f22] rounded-md border border-[#2b2d31] p-2 min-h-[100px]">
+          {/* Compact Textarea */}
+          <div className="flex-1 bg-[#161719] rounded border border-[#262729] p-2 min-h-[50px]">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -99,37 +92,26 @@ export default function Chat() {
                 }
               }}
               placeholder="Send a message"
-              className="w-full bg-transparent text-[#dbdee1] outline-none resize-none text-sm placeholder-[#4f545c]"
-              rows="4"
+              className="w-full bg-transparent text-[#dbdee1] outline-none resize-none text-[13px] placeholder-[#4f545c]"
+              rows="2"
             />
           </div>
 
-          {/* Action Column (Emoji on Top, Send on Bottom) */}
-          <div className="flex flex-col justify-between h-[100px] py-1">
-            <button 
-              type="button" 
-              onClick={() => setShowEmojis(!showEmojis)} 
-              className="text-[#b5bac1] hover:text-white transition-colors"
-            >
-              <Smile size={24} />
+          {/* Tight Side Buttons */}
+          <div className="flex flex-col gap-1 pb-1">
+            <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white">
+              <Smile size={20} />
             </button>
-            
-            <button 
-              type="submit" 
-              className="text-[#5865f2] hover:text-blue-400 transition-colors"
-            >
-              <Send size={24} />
+            <button type="submit" className="text-[#5865f2] hover:text-blue-400">
+              <Send size={20} />
             </button>
           </div>
         </div>
 
-        {/* Emoji Picker Popup */}
+        {/* Emoji Picker */}
         {showEmojis && (
-          <div className="absolute bottom-28 right-2 z-50 shadow-2xl scale-90 origin-bottom-right">
-            <EmojiPicker 
-              theme="dark" 
-              onEmojiClick={(e) => setInput(prev => prev + e.emoji)} 
-            />
+          <div className="absolute bottom-20 right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
+            <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
           </div>
         )}
       </form>
