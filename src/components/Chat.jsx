@@ -1,12 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { createClient } from '@supabase/supabase-js';
+import { supabase } from '../main'; // Import from main
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Send } from 'lucide-react';
-
-const supabase = createClient(
-  'https://jvpnulbwrjjryrqbzfpa.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp2cG51bGJ3cmpqcnlycWJ6ZnBhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI4MzU4MTEsImV4cCI6MjA4ODQxMTgxMX0.BDrz2DTfybunOlU0nuSNvURu8-ePgEK_pfrXIrxa7Ss'
-);
+import { Smile, Send, LogOut } from 'lucide-react';
 
 const getNameColor = (username) => {
   const colors = ['#adff2f', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4', '#9370db'];
@@ -17,7 +12,7 @@ const getNameColor = (username) => {
   return colors[Math.abs(hash) % colors.length];
 };
 
-export default function Chat() {
+export default function Chat({ username, onLogout }) {
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [showEmojis, setShowEmojis] = useState(false);
@@ -46,7 +41,13 @@ export default function Chat() {
   const sendMessage = async (e) => {
     if (e) e.preventDefault();
     if (!input.trim()) return;
-    await supabase.from('messages').insert([{ username: 'FAN_' + Math.floor(Math.random() * 999), content: input }]);
+    
+    // Using the 'username' prop passed from App.jsx
+    await supabase.from('messages').insert([{ 
+      username: username, 
+      content: input 
+    }]);
+    
     setInput('');
     setShowEmojis(false);
   };
@@ -54,16 +55,17 @@ export default function Chat() {
   return (
     <div className="flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#1c1d1f] overflow-hidden font-sans">
       
-      {/* Header */}
+      {/* Header with Logout */}
       <div className="p-2 px-3 bg-[#0f1012] border-b border-[#1c1d1f] flex justify-between items-center">
         <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">chat</h2>
-        <div className="flex items-center gap-1.5">
-          <span className="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-          <span className="text-[11px] text-[#949ba4]">connected</span>
+        <div className="flex items-center gap-3">
+          <span className="text-[11px] text-[#949ba4]">Hi, {username}</span>
+          <button onClick={onLogout} className="text-[#949ba4] hover:text-red-500">
+            <LogOut size={14} />
+          </button>
         </div>
       </div>
 
-      {/* Messages area remains the same */}
       <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
           <div key={msg.id} className="text-[13px] leading-[1.4]">
@@ -76,11 +78,8 @@ export default function Chat() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* FIXED Input Area to match PPV.to spacing */}
       <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
         <div className="flex items-stretch gap-3">
-          
-          {/* Sizing matches the black box in your screenshot */}
           <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
             <textarea
               value={input}
@@ -97,7 +96,6 @@ export default function Chat() {
             />
           </div>
 
-          {/* This column is now 'items-stretch' so buttons sit at TOP and BOTTOM */}
           <div className="flex flex-col justify-between py-0.5">
             <button 
               type="button" 
@@ -115,7 +113,6 @@ export default function Chat() {
           </div>
         </div>
 
-        {/* Emoji Picker Popup */}
         {showEmojis && (
           <div className="absolute bottom-[100px] right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
             <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
