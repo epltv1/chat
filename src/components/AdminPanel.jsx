@@ -19,18 +19,8 @@ export default function AdminPanel({ isOpen, onClose }) {
       <h2 className="text-white font-bold mb-4">Admin Controls</h2>
       
       <div className="space-y-4">
-        <button onClick={() => updateSetting('is_locked', true)} className="w-full bg-red-600 p-2 text-white">Lock Chat</button>
-        <button onClick={() => updateSetting('is_locked', false)} className="w-full bg-green-600 p-2 text-white">Unlock Chat</button>
-        
-        <div className="pt-4 border-t border-[#262729]">
-          <label className="text-white text-xs">Slow Mode (seconds)</label>
-          <input 
-            type="number" 
-            placeholder="0"
-            onChange={(e) => updateSetting('slow_mode_seconds', parseInt(e.target.value))} 
-            className="w-full mt-1 bg-[#0f1012] text-white p-2 border border-[#262729]" 
-          />
-        </div>
+        <button onClick={() => updateSetting('is_locked', true)} className="w-full bg-red-600 p-2 text-white rounded">Lock Chat</button>
+        <button onClick={() => updateSetting('is_locked', false)} className="w-full bg-green-600 p-2 text-white rounded">Unlock Chat</button>
       </div>
     </div>
   );
