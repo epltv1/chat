@@ -23,23 +23,18 @@ export default function Chat({ username, onLogout }) {
   const chatEndRef = useRef(null);
 
   useEffect(() => {
-    // 1. Fetch initial state
     const fetchData = async () => {
-      // Fetch Messages
       const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
       setMessages(msgs || []);
       
-      // Fetch Settings
       const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
       if (setting) setIsLocked(setting.is_locked);
       
-      // Fetch User Status
       const { data: profile } = await supabase.from('profiles').select('status').eq('username', username).single();
       if (profile) setUserStatus(profile.status);
     };
     fetchData();
 
-    // 2. Realtime Subscriptions
     const channel = supabase.channel('realtime-chat')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => [...prev, payload.new]);
@@ -64,7 +59,17 @@ export default function Chat({ username, onLogout }) {
 
   const sendMessage = async (e) => {
     if (e) e.preventDefault();
-    if (!input.trim() || userStatus === 'muted') return;
+    if (!input.trim()) return;
+
+    // Last-second server-side check
+    const { data: userData } = await supabase
+      .from('profiles')
+      .select('status')
+      .eq('username', username)
+      .single();
+
+    if (userData?.status === 'muted') return alert("You are muted. Contact admin on Discord or Telegram.");
+    if (userData?.status === 'banned') return alert("You are banned. Contact admin for information.");
 
     const { error } = await supabase.from('messages').insert([{ username, content: input }]);
     if (!error) {
@@ -116,7 +121,6 @@ export default function Chat({ username, onLogout }) {
         <div ref={chatEndRef} />
       </div>
 
-      {/* MODERATION LOGIC */}
       {userStatus === 'banned' ? (
         <div className="p-4 text-center text-red-500 text-xs bg-[#0f1012] border-t border-[#1c1d1f]">
           You are banned. Contact admin on Discord or Telegram.
