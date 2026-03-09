@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../main';
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Send, LogOut, Settings, Trash2, Megaphone, ShieldCheck, Bot } from 'lucide-react';
+import { Smile, Send, LogOut, Settings, Trash2, Megaphone, Crown, Bot } from 'lucide-react';
 import AdminPanel from './AdminPanel';
 
 const getNameColor = (username) => {
@@ -23,8 +23,14 @@ export default function Chat({ username, onLogout }) {
   const fetchData = async () => {
     const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
     
-    // Inject system message at the top if messages exist
-    const systemBot = { id: 'system', username: 'Futbolx', content: 'Welcome to the chat! Play fair and enjoy.', isSystem: true };
+    // Updated System Bot Message
+    const systemBot = { 
+      id: 'system', 
+      username: 'Futbolx', 
+      content: 'Welcome to Futbolx chat, respect each other and use common sense and lets enjoy the games.', 
+      isSystem: true 
+    };
+    
     if (msgs) setMessages([systemBot, ...msgs]);
     
     const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
@@ -83,7 +89,7 @@ export default function Chat({ username, onLogout }) {
               <span className={`font-bold uppercase flex items-center gap-1 ${isOwner ? 'text-[#00ffcc] drop-shadow-[0_0_8px_rgba(0,255,204,0.8)]' : ''}`}
                     style={{ color: !isOwner ? getNameColor(msg.username) : undefined }}>
                 {msg.username}:
-                {isOwner && <ShieldCheck size={12} className="text-[#00ffcc]" />}
+                {isOwner && <Crown size={12} className="text-[#00ffcc]" />}
               </span>
               <span className="text-[#dbdee1]">{msg.content}</span>
             </div>
