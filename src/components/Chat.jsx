@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { supabase } from '../main';
 import EmojiPicker from 'emoji-picker-react';
-import { Smile, Send, LogOut, Settings, Trash2 } from 'lucide-react'; // Added Trash2
+import { Smile, Send, LogOut, Settings, Trash2 } from 'lucide-react';
 import AdminPanel from './AdminPanel';
 
 const getNameColor = (username) => {
@@ -18,7 +18,6 @@ export default function Chat({ username, onLogout }) {
   const [input, setInput] = useState('');
   const [showEmojis, setShowEmojis] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [lastMessageTime, setLastMessageTime] = useState(0);
   const chatEndRef = useRef(null);
 
   useEffect(() => {
@@ -32,7 +31,6 @@ export default function Chat({ username, onLogout }) {
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => [...prev, payload.new]);
       })
-      // Listen for specific message deletions
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'messages' }, (payload) => {
         setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
       })
@@ -49,19 +47,12 @@ export default function Chat({ username, onLogout }) {
     if (e) e.preventDefault();
     if (!input.trim()) return;
 
-    const { data: settings } = await supabase.from('chat_settings').select('*').eq('id', 1).single();
-
+    // Check if chat is locked
+    const { data: settings } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
     if (settings?.is_locked) return alert("Chat is currently locked by admin.");
-
-    const slowModeSeconds = settings?.slow_mode_seconds || 0;
-    const now = Date.now();
-    if (slowModeSeconds > 0 && (now - lastMessageTime) < (slowModeSeconds * 1000)) {
-      return alert(`Slow mode: wait ${slowModeSeconds}s`);
-    }
 
     const { error } = await supabase.from('messages').insert([{ username, content: input }]);
     if (!error) {
-      setLastMessageTime(now);
       setInput('');
       setShowEmojis(false);
     }
@@ -93,7 +84,6 @@ export default function Chat({ username, onLogout }) {
       <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
           <div key={msg.id} className="group flex items-center gap-2 text-[13px] leading-[1.4]">
-            {/* Delete button: visible only for Optimus, appears on hover */}
             {username.toLowerCase() === 'optimus' && (
               <button 
                 onClick={() => deleteMessage(msg.id)} 
