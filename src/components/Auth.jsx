@@ -8,31 +8,41 @@ export default function Auth({ onAuthSuccess }) {
     if (!username.trim()) return alert("Enter a username!");
 
     // 1. Get user's current IP
-    const res = await fetch('https://api.ipify.org?format=json');
-    const { ip } = await res.json();
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const { ip } = await res.json();
 
-    // 2. Check if username exists in DB
-    const { data: existingUser } = await supabase
-      .from('users')
-      .select('*')
-      .eq('username', username)
-      .single();
+      // 2. Check if username exists in DB
+      const { data: existingUser, error: fetchError } = await supabase
+        .from('users')
+        .select('*')
+        .eq('username', username)
+        .single();
 
-    if (existingUser) {
-      // 3. If exists, check if IP matches
-      if (existingUser.ip_address !== ip) {
-        return alert("This username is taken by another device!");
+      if (existingUser) {
+        // 3. If IP doesn't match, ask to update it (The Hard Reset)
+        if (existingUser.ip_address !== ip) {
+          const confirmUpdate = window.confirm("Detected new network connection. Would you like to update this username to this device?");
+          if (!confirmUpdate) return;
+          
+          await supabase
+            .from('users')
+            .update({ ip_address: ip })
+            .eq('username', username);
+        }
+        
+        localStorage.setItem('chat_username', username);
+        onAuthSuccess(username);
+      } else {
+        // 4. If user is brand new, register them
+        const { error } = await supabase.from('users').insert([{ username, ip_address: ip }]);
+        if (error) return alert("Error registering: " + error.message);
+        
+        localStorage.setItem('chat_username', username);
+        onAuthSuccess(username);
       }
-      // If IP matches, log them in
-      localStorage.setItem('chat_username', username);
-      onAuthSuccess(username);
-    } else {
-      // 4. If new, register them with their IP
-      const { error } = await supabase.from('users').insert([{ username, ip_address: ip }]);
-      if (error) return alert("Error registering: " + error.message);
-      
-      localStorage.setItem('chat_username', username);
-      onAuthSuccess(username);
+    } catch (err) {
+      alert("Connection error: Could not verify IP address.");
     }
   };
 
