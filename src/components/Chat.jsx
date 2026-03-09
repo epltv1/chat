@@ -22,8 +22,6 @@ export default function Chat({ username, onLogout }) {
 
   const fetchData = async () => {
     const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    
-    // Greeting Message from Bot
     const systemBot = { id: 'system', username: 'Futbolx', content: 'Welcome to Futbolx chat, respect each other and use common sense and lets enjoy the games.', isSystem: true };
     
     if (msgs) setMessages([systemBot, ...msgs]);
@@ -47,12 +45,12 @@ export default function Chat({ username, onLogout }) {
     e?.preventDefault();
     if (!input.trim()) return;
 
-    // RIGOROUS LINK PROTECTION
-    const linkRegex = /([a-zA-Z0-9-]+\.)+[a-zA-Z]{2,}|(http|https|www)/gi;
+    // RIGOROUS LINK PROTECTION: Matches domains like .com, .net, .xyz, .org, or protocols like http/https/www
+    const linkRegex = /([a-zA-Z0-9-]+\.(com|net|org|edu|gov|io|xyz|co|me|uk|ca|de|jp|fr|it|es))|(http|https|www)/gi;
     const isOwner = username.toLowerCase() === 'optimus';
     
     if (!isOwner && linkRegex.test(input.toLowerCase())) {
-      alert("Links are restricted!");
+      alert("Links are restricted! Only the owner can post links.");
       setInput('');
       return;
     }
@@ -89,7 +87,7 @@ export default function Chat({ username, onLogout }) {
           return (
             <div key={msg.id} className="group flex items-center gap-2 text-[13px]">
               {isBot && <Bot size={18} className="text-cyan-400" />}
-              {username.toLowerCase() === 'optimus' && !isBot && (
+              {username.toLowerCase() === 'optimus' && (
                 <button onClick={() => deleteMessage(msg.id)} className="text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={12} /></button>
               )}
               <span className={`font-bold uppercase flex items-center gap-1 ${isOwner ? 'text-[#00ffcc] drop-shadow-[0_0_8px_rgba(0,255,204,0.8)]' : ''}`}
