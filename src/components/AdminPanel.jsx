@@ -15,6 +15,11 @@ export default function AdminPanel({ isOpen, onClose }) {
     onClose();
   };
 
+  const deleteBroadcast = async () => {
+    await supabase.from('announcements').update({ is_active: false }).eq('id', 1);
+    onClose();
+  };
+
   const broadcastViaBot = async () => {
     await supabase.from('messages').insert([{ username: 'Futbolx', content: announcementText }]);
     onClose();
@@ -34,6 +39,7 @@ export default function AdminPanel({ isOpen, onClose }) {
         onChange={(e) => setAnnouncementText(e.target.value)}
       />
       <button onClick={broadcast} className="w-full bg-blue-600 p-2 mb-2 rounded text-xs">Set Header Announcement</button>
+      <button onClick={deleteBroadcast} className="w-full bg-gray-700 p-2 mb-2 rounded text-xs">Delete Header Announcement</button>
       <button onClick={broadcastViaBot} className="w-full bg-cyan-600 p-2 rounded text-xs">Broadcast via Bot</button>
     </div>
   );
