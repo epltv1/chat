@@ -52,7 +52,7 @@ export default function Chat() {
   };
 
   return (
-    <div className="flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#2b2d31] overflow-hidden font-sans">
+    <div className="flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#1c1d1f] overflow-hidden font-sans">
       
       {/* Header */}
       <div className="p-2 px-3 bg-[#0f1012] border-b border-[#1c1d1f] flex justify-between items-center">
@@ -63,7 +63,7 @@ export default function Chat() {
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages area remains the same */}
       <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
         {messages.map((msg) => (
           <div key={msg.id} className="text-[13px] leading-[1.4]">
@@ -76,12 +76,12 @@ export default function Chat() {
         <div ref={chatEndRef} />
       </div>
 
-      {/* Input Area - Tightened PPV Style */}
-      <form onSubmit={sendMessage} className="p-2 pb-3 bg-[#0f1012] border-t border-[#1c1d1f] relative">
-        <div className="flex items-end gap-2">
+      {/* FIXED Input Area to match PPV.to spacing */}
+      <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
+        <div className="flex items-stretch gap-3">
           
-          {/* Compact Textarea */}
-          <div className="flex-1 bg-[#161719] rounded border border-[#262729] p-2 min-h-[50px]">
+          {/* Sizing matches the black box in your screenshot */}
+          <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
             <textarea
               value={input}
               onChange={(e) => setInput(e.target.value)}
@@ -93,24 +93,31 @@ export default function Chat() {
               }}
               placeholder="Send a message"
               className="w-full bg-transparent text-[#dbdee1] outline-none resize-none text-[13px] placeholder-[#4f545c]"
-              rows="2"
+              rows="3"
             />
           </div>
 
-          {/* Tight Side Buttons */}
-          <div className="flex flex-col gap-1 pb-1">
-            <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white">
-              <Smile size={20} />
+          {/* This column is now 'items-stretch' so buttons sit at TOP and BOTTOM */}
+          <div className="flex flex-col justify-between py-0.5">
+            <button 
+              type="button" 
+              onClick={() => setShowEmojis(!showEmojis)} 
+              className="text-[#949ba4] hover:text-white transition-colors"
+            >
+              <Smile size={22} />
             </button>
-            <button type="submit" className="text-[#5865f2] hover:text-blue-400">
-              <Send size={20} />
+            <button 
+              type="submit" 
+              className="text-[#5865f2] hover:text-blue-400 transition-colors"
+            >
+              <Send size={22} />
             </button>
           </div>
         </div>
 
-        {/* Emoji Picker */}
+        {/* Emoji Picker Popup */}
         {showEmojis && (
-          <div className="absolute bottom-20 right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
+          <div className="absolute bottom-[100px] right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
             <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
           </div>
         )}
