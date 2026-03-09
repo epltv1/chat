@@ -31,22 +31,15 @@ export default function Chat({ username, onLogout }) {
   };
 
   useEffect(() => {
+    // 1. Initial load
     fetchData();
 
-    const channel = supabase.channel('chat_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-        if (payload.eventType === 'INSERT') {
-          setMessages((prev) => [...prev, payload.new]);
-        } else if (payload.eventType === 'DELETE') {
-          setMessages((prev) => prev.filter((msg) => msg.id !== payload.old.id));
-        }
-      })
-      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_settings' }, (payload) => {
-        setIsLocked(payload.new.is_locked);
-      })
-      .subscribe();
+    // 2. Pro Polling Strategy: Refresh every 3 seconds to ensure all users see new messages
+    const interval = setInterval(() => {
+      fetchData();
+    }, 3000);
 
-    return () => supabase.removeChannel(channel);
+    return () => clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -61,14 +54,14 @@ export default function Chat({ username, onLogout }) {
     if (!error) {
       setInput('');
       setShowEmojis(false);
-      // Force-fetch to ensure UI updates even if Realtime WebSocket is blocked
+      // Force refresh immediately after sending
       fetchData();
     }
   };
 
   const deleteMessage = async (id) => {
     await supabase.from('messages').delete().eq('id', id);
-    // Force-fetch after deletion
+    // Force refresh immediately after deletion
     fetchData();
   };
 
