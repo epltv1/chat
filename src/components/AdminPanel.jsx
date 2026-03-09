@@ -3,14 +3,13 @@ import { supabase } from '../main';
 export default function AdminPanel({ isOpen, onClose }) {
   if (!isOpen) return null;
 
-  const updateSetting = async (column, value) => {
+  const updateSetting = async (value) => {
     const { error } = await supabase
       .from('chat_settings')
-      .update({ [column]: value })
+      .update({ is_locked: value })
       .eq('id', 1);
     
-    if (error) alert("Error updating: " + error.message);
-    else alert(`Setting updated!`);
+    if (error) alert("Error: " + error.message);
   };
 
   return (
@@ -19,8 +18,12 @@ export default function AdminPanel({ isOpen, onClose }) {
       <h2 className="text-white font-bold mb-4">Admin Controls</h2>
       
       <div className="space-y-4">
-        <button onClick={() => updateSetting('is_locked', true)} className="w-full bg-red-600 p-2 text-white rounded">Lock Chat</button>
-        <button onClick={() => updateSetting('is_locked', false)} className="w-full bg-green-600 p-2 text-white rounded">Unlock Chat</button>
+        <button onClick={() => updateSetting(true)} className="w-full bg-red-600 p-2 text-white rounded">
+          Lock Chat
+        </button>
+        <button onClick={() => updateSetting(false)} className="w-full bg-green-600 p-2 text-white rounded">
+          Unlock Chat
+        </button>
       </div>
     </div>
   );
