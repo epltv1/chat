@@ -22,15 +22,7 @@ export default function Chat({ username, onLogout }) {
 
   const fetchData = async () => {
     const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-    
-    // Updated System Bot Message
-    const systemBot = { 
-      id: 'system', 
-      username: 'Futbolx', 
-      content: 'Welcome to Futbolx chat, respect each other and use common sense and lets enjoy the games.', 
-      isSystem: true 
-    };
-    
+    const systemBot = { id: 'system', username: 'Futbolx', content: 'Welcome to Futbolx chat, respect each other and use common sense and lets enjoy the games.', isSystem: true };
     if (msgs) setMessages([systemBot, ...msgs]);
     
     const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
@@ -51,6 +43,16 @@ export default function Chat({ username, onLogout }) {
   const sendMessage = async (e) => {
     e?.preventDefault();
     if (!input.trim()) return;
+
+    // RIGOROUS LINK PROTECTION
+    const linkRegex = /(http|https|www|\.[a-z]{2,})\s/gi;
+    const isOwner = username.toLowerCase() === 'optimus';
+    if (!isOwner && linkRegex.test(input.toLowerCase())) {
+      alert("Links are restricted!");
+      setInput('');
+      return;
+    }
+
     const { error } = await supabase.from('messages').insert([{ username, content: input }]);
     if (!error) { setInput(''); setShowEmojis(false); fetchData(); }
   };
@@ -65,7 +67,6 @@ export default function Chat({ username, onLogout }) {
         <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">chat</h2>
         <div className="flex items-center gap-3">
           {username.toLowerCase() === 'optimus' && <button onClick={() => setIsAdminOpen(true)} className="text-[#949ba4]"><Settings size={14} /></button>}
-          <span className="text-[11px] text-[#949ba4]">Hi, {username}</span>
           <button onClick={onLogout} className="text-[#949ba4]"><LogOut size={14} /></button>
         </div>
       </div>
@@ -80,16 +81,17 @@ export default function Chat({ username, onLogout }) {
       <div className="flex-1 overflow-y-auto p-3 space-y-2 bg-[#0b0c0d]">
         {messages.map((msg) => {
           const isOwner = msg.username.toLowerCase() === 'optimus';
+          const isBot = msg.username === 'Futbolx';
           return (
             <div key={msg.id} className="group flex items-center gap-2 text-[13px]">
-              {msg.isSystem && <Bot size={14} className="text-blue-400" />}
-              {username.toLowerCase() === 'optimus' && !msg.isSystem && (
+              {isBot && <Bot size={18} className="text-cyan-400" />}
+              {username.toLowerCase() === 'optimus' && !isBot && (
                 <button onClick={() => deleteMessage(msg.id)} className="text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={12} /></button>
               )}
               <span className={`font-bold uppercase flex items-center gap-1 ${isOwner ? 'text-[#00ffcc] drop-shadow-[0_0_8px_rgba(0,255,204,0.8)]' : ''}`}
-                    style={{ color: !isOwner ? getNameColor(msg.username) : undefined }}>
+                    style={{ color: !isOwner && !isBot ? getNameColor(msg.username) : undefined }}>
                 {msg.username}:
-                {isOwner && <Crown size={12} className="text-[#00ffcc]" />}
+                {isOwner && <Crown size={14} className="text-[#00ffcc]" />}
               </span>
               <span className="text-[#dbdee1]">{msg.content}</span>
             </div>
