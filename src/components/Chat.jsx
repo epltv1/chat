@@ -32,10 +32,11 @@ export default function Chat({ username, onLogout }) {
     };
     fetchData();
 
-    // 2. Realtime Subscription
-    const channel = supabase.channel('chat_messages')
+    // 2. Optimized Realtime Subscription
+    const channel = supabase.channel('chat_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
         console.log("Change received!", payload);
+        
         if (payload.eventType === 'INSERT') {
           setMessages((prev) => [...prev, payload.new]);
         } else if (payload.eventType === 'DELETE') {
@@ -45,9 +46,7 @@ export default function Chat({ username, onLogout }) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_settings' }, (payload) => {
         setIsLocked(payload.new.is_locked);
       })
-      .subscribe((status) => {
-        console.log("Subscription status:", status);
-      });
+      .subscribe();
 
     return () => {
       supabase.removeChannel(channel);
