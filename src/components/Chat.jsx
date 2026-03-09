@@ -19,15 +19,23 @@ export default function Chat({ username, onLogout }) {
   const [showEmojis, setShowEmojis] = useState(false);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [isLocked, setIsLocked] = useState(false);
+  const [userStatus, setUserStatus] = useState('active'); // 'active', 'muted', 'banned'
   const chatEndRef = useRef(null);
 
   useEffect(() => {
     // 1. Fetch initial state
     const fetchData = async () => {
+      // Fetch Messages
       const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
       setMessages(msgs || []);
+      
+      // Fetch Settings
       const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
       if (setting) setIsLocked(setting.is_locked);
+      
+      // Fetch User Status
+      const { data: profile } = await supabase.from('profiles').select('status').eq('username', username).single();
+      if (profile) setUserStatus(profile.status);
     };
     fetchData();
 
@@ -42,10 +50,13 @@ export default function Chat({ username, onLogout }) {
       .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'chat_settings' }, (payload) => {
         setIsLocked(payload.new.is_locked);
       })
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'profiles' }, (payload) => {
+        if (payload.new.username === username) setUserStatus(payload.new.status);
+      })
       .subscribe();
 
     return () => supabase.removeChannel(channel);
-  }, []);
+  }, [username]);
 
   useEffect(() => {
     chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -53,7 +64,7 @@ export default function Chat({ username, onLogout }) {
 
   const sendMessage = async (e) => {
     if (e) e.preventDefault();
-    if (!input.trim()) return;
+    if (!input.trim() || userStatus === 'muted') return;
 
     const { error } = await supabase.from('messages').insert([{ username, content: input }]);
     if (!error) {
@@ -105,8 +116,16 @@ export default function Chat({ username, onLogout }) {
         <div ref={chatEndRef} />
       </div>
 
-      {/* LOCK LOGIC: Hide input for non-admins when locked */}
-      {isLocked && username.toLowerCase() !== 'optimus' ? (
+      {/* MODERATION LOGIC */}
+      {userStatus === 'banned' ? (
+        <div className="p-4 text-center text-red-500 text-xs bg-[#0f1012] border-t border-[#1c1d1f]">
+          You are banned. Contact admin on Discord or Telegram.
+        </div>
+      ) : userStatus === 'muted' ? (
+        <div className="p-4 text-center text-yellow-500 text-xs bg-[#0f1012] border-t border-[#1c1d1f]">
+          You are muted. Contact admin to be unmuted.
+        </div>
+      ) : isLocked && username.toLowerCase() !== 'optimus' ? (
         <div className="p-4 text-center text-[#949ba4] text-xs bg-[#0f1012] border-t border-[#1c1d1f]">
           Chat is currently locked.
         </div>
