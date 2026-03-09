@@ -21,22 +21,20 @@ export default function Chat({ username, onLogout }) {
   const [isLocked, setIsLocked] = useState(false);
   const chatEndRef = useRef(null);
 
+  // Helper to fetch data
+  const fetchData = async () => {
+    const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
+    if (msgs) setMessages(msgs);
+    
+    const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
+    if (setting) setIsLocked(setting.is_locked);
+  };
+
   useEffect(() => {
-    // 1. Initial Load
-    const fetchData = async () => {
-      const { data } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
-      if (data) setMessages(data);
-      
-      const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
-      if (setting) setIsLocked(setting.is_locked);
-    };
     fetchData();
 
-    // 2. Optimized Realtime Subscription
     const channel = supabase.channel('chat_realtime')
       .on('postgres_changes', { event: '*', schema: 'public', table: 'messages' }, (payload) => {
-        console.log("Change received!", payload);
-        
         if (payload.eventType === 'INSERT') {
           setMessages((prev) => [...prev, payload.new]);
         } else if (payload.eventType === 'DELETE') {
@@ -48,9 +46,7 @@ export default function Chat({ username, onLogout }) {
       })
       .subscribe();
 
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    return () => supabase.removeChannel(channel);
   }, []);
 
   useEffect(() => {
@@ -65,11 +61,15 @@ export default function Chat({ username, onLogout }) {
     if (!error) {
       setInput('');
       setShowEmojis(false);
+      // Force-fetch to ensure UI updates even if Realtime WebSocket is blocked
+      fetchData();
     }
   };
 
   const deleteMessage = async (id) => {
     await supabase.from('messages').delete().eq('id', id);
+    // Force-fetch after deletion
+    fetchData();
   };
 
   return (
