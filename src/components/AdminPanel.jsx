@@ -4,15 +4,13 @@ export default function AdminPanel({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const updateSetting = async (column, value) => {
-    await supabase.from('chat_settings').update({ [column]: value }).eq('id', 1);
-    alert(`Setting updated: ${column} = ${value}`);
-  };
-
-  const clearChat = async () => {
-    if (confirm("Are you sure? This will delete ALL messages!")) {
-      await supabase.from('messages').delete().neq('id', 0); // Deletes all
-      alert("Chat cleared.");
-    }
+    const { error } = await supabase
+      .from('chat_settings')
+      .update({ [column]: value })
+      .eq('id', 1);
+    
+    if (error) alert("Error updating: " + error.message);
+    else alert(`Setting updated!`);
   };
 
   return (
@@ -26,10 +24,13 @@ export default function AdminPanel({ isOpen, onClose }) {
         
         <div className="pt-4 border-t border-[#262729]">
           <label className="text-white text-xs">Slow Mode (seconds)</label>
-          <input type="number" onChange={(e) => updateSetting('slow_mode_seconds', e.target.value)} className="w-full mt-1 bg-[#0f1012] text-white p-2" />
+          <input 
+            type="number" 
+            placeholder="0"
+            onChange={(e) => updateSetting('slow_mode_seconds', parseInt(e.target.value))} 
+            className="w-full mt-1 bg-[#0f1012] text-white p-2 border border-[#262729]" 
+          />
         </div>
-
-        <button onClick={clearChat} className="w-full bg-gray-700 p-2 text-white">Clear All Messages</button>
       </div>
     </div>
   );
