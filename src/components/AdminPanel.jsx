@@ -1,19 +1,35 @@
+import { supabase } from '../main';
+
 export default function AdminPanel({ isOpen, onClose }) {
   if (!isOpen) return null;
+
+  const updateSetting = async (column, value) => {
+    await supabase.from('chat_settings').update({ [column]: value }).eq('id', 1);
+    alert(`Setting updated: ${column} = ${value}`);
+  };
+
+  const clearChat = async () => {
+    if (confirm("Are you sure? This will delete ALL messages!")) {
+      await supabase.from('messages').delete().neq('id', 0); // Deletes all
+      alert("Chat cleared.");
+    }
+  };
 
   return (
     <div className="absolute top-0 left-0 h-full w-[250px] bg-[#161719] border-r border-[#262729] z-50 p-4">
       <button onClick={onClose} className="text-white mb-4">✕ Close</button>
       <h2 className="text-white font-bold mb-4">Admin Controls</h2>
       
-      <div className="space-y-2">
-        <button className="w-full bg-red-600 p-2 text-white">Lock Chat</button>
-        <button className="w-full bg-yellow-600 p-2 text-white">Slow Mode: On</button>
-      </div>
-      
-      <div className="mt-6">
-        <h3 className="text-white text-sm font-bold">Members</h3>
-        {/* We will fetch the 'users' table here */}
+      <div className="space-y-4">
+        <button onClick={() => updateSetting('is_locked', true)} className="w-full bg-red-600 p-2 text-white">Lock Chat</button>
+        <button onClick={() => updateSetting('is_locked', false)} className="w-full bg-green-600 p-2 text-white">Unlock Chat</button>
+        
+        <div className="pt-4 border-t border-[#262729]">
+          <label className="text-white text-xs">Slow Mode (seconds)</label>
+          <input type="number" onChange={(e) => updateSetting('slow_mode_seconds', e.target.value)} className="w-full mt-1 bg-[#0f1012] text-white p-2" />
+        </div>
+
+        <button onClick={clearChat} className="w-full bg-gray-700 p-2 text-white">Clear All Messages</button>
       </div>
     </div>
   );
