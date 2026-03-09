@@ -7,9 +7,7 @@ import AdminPanel from './AdminPanel';
 const getNameColor = (username) => {
   const colors = ['#adff2f', '#ff00ff', '#00ffff', '#ffa500', '#ff69b4', '#9370db'];
   let hash = 0;
-  for (let i = 0; i < username.length; i++) {
-    hash = username.charCodeAt(i) + ((hash << 5) - hash);
-  }
+  for (let i = 0; i < username.length; i++) hash = username.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 };
 
@@ -23,50 +21,32 @@ export default function Chat({ username, onLogout }) {
   const chatEndRef = useRef(null);
 
   const fetchData = async () => {
-    // Fetch Messages
     const { data: msgs } = await supabase.from('messages').select('*').order('created_at', { ascending: true });
     if (msgs) setMessages(msgs);
     
-    // Fetch Settings
     const { data: setting } = await supabase.from('chat_settings').select('is_locked').eq('id', 1).single();
     if (setting) setIsLocked(setting.is_locked);
 
-    // Fetch Announcement
     const { data: ann } = await supabase.from('announcements').select('*').eq('id', 1).single();
     if (ann) setAnnouncement(ann);
   };
 
   useEffect(() => {
     fetchData();
-
-    // Pro Polling: Refresh every 3 seconds for all users
-    const interval = setInterval(() => {
-      fetchData();
-    }, 3000);
-
+    const interval = setInterval(fetchData, 3000);
     return () => clearInterval(interval);
   }, []);
 
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  useEffect(() => chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }), [messages]);
 
   const sendMessage = async (e) => {
-    if (e) e.preventDefault();
+    e?.preventDefault();
     if (!input.trim()) return;
-
     const { error } = await supabase.from('messages').insert([{ username, content: input }]);
-    if (!error) {
-      setInput('');
-      setShowEmojis(false);
-      fetchData();
-    }
+    if (!error) { setInput(''); setShowEmojis(false); fetchData(); }
   };
 
-  const deleteMessage = async (id) => {
-    await supabase.from('messages').delete().eq('id', id);
-    fetchData();
-  };
+  const deleteMessage = async (id) => { await supabase.from('messages').delete().eq('id', id); fetchData(); };
 
   return (
     <div className="relative flex flex-col h-[600px] w-full max-w-md bg-[#0f1012] border border-[#1c1d1f] overflow-hidden font-sans">
@@ -75,43 +55,25 @@ export default function Chat({ username, onLogout }) {
       <div className="p-2 px-3 bg-[#0f1012] border-b border-[#1c1d1f] flex justify-between items-center">
         <h2 className="text-[13px] font-bold text-white uppercase tracking-tight">chat</h2>
         <div className="flex items-center gap-3">
-          {username.toLowerCase() === 'optimus' && (
-            <button onClick={() => setIsAdminOpen(true)} className="text-[#949ba4] hover:text-white transition-colors">
-              <Settings size={14} />
-            </button>
-          )}
+          {username.toLowerCase() === 'optimus' && <button onClick={() => setIsAdminOpen(true)} className="text-[#949ba4]"><Settings size={14} /></button>}
           <span className="text-[11px] text-[#949ba4]">Hi, {username}</span>
-          <button onClick={onLogout} className="text-[#949ba4] hover:text-red-500">
-            <LogOut size={14} />
-          </button>
+          <button onClick={onLogout} className="text-[#949ba4]"><LogOut size={14} /></button>
         </div>
       </div>
 
-      {/* Announcement Ticker */}
+      {/* Announcement Banner (Static) */}
       {announcement.is_active && (
-        <div className="bg-[#2b2d31] text-white text-[11px] py-1.5 px-3 border-b border-[#1c1d1f] overflow-hidden whitespace-nowrap flex items-center">
+        <div className="bg-[#2b2d31] text-white text-[11px] py-1.5 px-3 border-b border-[#1c1d1f] flex items-center">
           <Megaphone size={12} className="mr-2 shrink-0 text-yellow-500" />
-          <div className="animate-marquee inline-block">
-            {announcement.content}
-          </div>
+          <span className="truncate">{announcement.content}</span>
         </div>
       )}
-      
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d] scrollbar-hide">
+      <div className="flex-1 overflow-y-auto p-3 space-y-0.5 bg-[#0b0c0d]">
         {messages.map((msg) => (
-          <div key={msg.id} className="group flex items-center gap-2 text-[13px] leading-[1.4]">
-            {username.toLowerCase() === 'optimus' && (
-              <button 
-                onClick={() => deleteMessage(msg.id)} 
-                className="opacity-0 group-hover:opacity-100 text-red-500 hover:text-red-700 transition-opacity"
-              >
-                <Trash2 size={12} />
-              </button>
-            )}
-            <span className="font-bold mr-1.5 uppercase tracking-wide" style={{ color: getNameColor(msg.username) }}>
-              {msg.username}:
-            </span>
+          <div key={msg.id} className="group flex items-center gap-2 text-[13px]">
+            {username.toLowerCase() === 'optimus' && <button onClick={() => deleteMessage(msg.id)} className="text-red-500 opacity-0 group-hover:opacity-100"><Trash2 size={12} /></button>}
+            <span className="font-bold uppercase" style={{ color: getNameColor(msg.username) }}>{msg.username}:</span>
             <span className="text-[#dbdee1]">{msg.content}</span>
           </div>
         ))}
@@ -119,36 +81,13 @@ export default function Chat({ username, onLogout }) {
       </div>
 
       {isLocked && username.toLowerCase() !== 'optimus' ? (
-        <div className="p-4 text-center text-[#949ba4] text-xs bg-[#0f1012] border-t border-[#1c1d1f]">
-          Chat is currently locked.
-        </div>
+        <div className="p-4 text-center text-[#949ba4] text-xs border-t border-[#1c1d1f]">Chat is locked.</div>
       ) : (
-        <form onSubmit={sendMessage} className="p-3 pt-1 bg-[#0f1012] relative">
-          <div className="flex items-stretch gap-3">
-            <div className="flex-1 bg-[#161719] rounded-md border border-[#262729] p-2 min-h-[75px]">
-              <textarea
-                value={input}
-                onChange={(e) => setInput(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); } }}
-                placeholder="Send a message"
-                className="w-full bg-transparent text-[#dbdee1] outline-none resize-none text-[13px] placeholder-[#4f545c]"
-                rows="3"
-              />
-            </div>
-            <div className="flex flex-col justify-between py-0.5">
-              <button type="button" onClick={() => setShowEmojis(!showEmojis)} className="text-[#949ba4] hover:text-white transition-colors">
-                <Smile size={22} />
-              </button>
-              <button type="submit" className="text-[#5865f2] hover:text-blue-400 transition-colors">
-                <Send size={22} />
-              </button>
-            </div>
+        <form onSubmit={sendMessage} className="p-3 bg-[#0f1012] border-t border-[#1c1d1f]">
+          <div className="flex items-center gap-3">
+            <textarea value={input} onChange={(e) => setInput(e.target.value)} className="flex-1 bg-[#161719] p-2 text-[13px] rounded border border-[#262729] text-white outline-none" rows="2" placeholder="Send a message" />
+            <button type="submit" className="text-[#5865f2]"><Send size={22} /></button>
           </div>
-          {showEmojis && (
-            <div className="absolute bottom-[100px] right-2 z-50 shadow-2xl scale-[0.85] origin-bottom-right">
-              <EmojiPicker theme="dark" onEmojiClick={(e) => setInput(prev => prev + e.emoji)} />
-            </div>
-          )}
         </form>
       )}
     </div>
